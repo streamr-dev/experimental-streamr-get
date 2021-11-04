@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "nyc ts-mocha --timeout 10000 --recursive test/*.ts --exit"
+    "test": "nyc ts-mocha --timeout 10000 --recursive test/*.ts --exit",
+    "build": "tsc --project ./tsconfig.json",
+    "start" : "npm run build && node scripts/start-gateway.js"
   },
   "author": "",
   "license": "ISC",

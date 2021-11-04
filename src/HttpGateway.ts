@@ -1,5 +1,4 @@
 import express from 'express'
-import StreamrClient from 'streamr-client'
 import { StreamrGet } from './StreamrGet'
 
 export class HttpGateway {
