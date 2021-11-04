@@ -1,10 +1,7 @@
 import { expect } from 'chai'
 import { it, describe } from "mocha"
-import StreamrClient, { Stream, StreamOperation } from 'streamr-client'
-import { Wallet } from 'ethers'
 import { MemoryStorage } from '../src/storage/MemoryStorage'
 import { BaseStreamrFileMetadata } from '../src/storage/Storage'
-
 
 describe('MemoryStorage', () => {
     const storage = new MemoryStorage()

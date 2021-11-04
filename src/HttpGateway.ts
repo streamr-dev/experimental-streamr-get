@@ -1,16 +1,17 @@
 import express from 'express'
-import { StreamrRequest } from './StreamrRequest'
+import StreamrClient from 'streamr-client'
+import { StreamrGet } from './StreamrGet'
 
 export class HttpGateway {
     port: number
-    request: StreamrRequest
+    getter: StreamrGet
 
     constructor(
         privateKey: string,
         streamId: string,
         port: number
     ){
-        this.request = new StreamrRequest(privateKey, streamId)
+        this.getter = new StreamrGet(privateKey, streamId)
         this.port = port
 
         this.listen()
@@ -20,7 +21,7 @@ export class HttpGateway {
         const app = express()
         app.get('/:fileHash', (req, res) => {
             const hash = req.params.fileHash
-            this.request.get(hash).then(file => {
+            this.getter.get(hash).then(file => {
                 res.send(file)
             })
         })

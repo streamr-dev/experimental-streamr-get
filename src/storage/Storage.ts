@@ -25,17 +25,20 @@ export interface LocalStreamrFileMetadata extends BaseStreamrFileMetadata{
     data: string
 }
 
-export const getHash = (filePath: string) => {
+export const getHash = (data: string): string => {
+    return `0x${keccak256(data)}`
+}
+
+export const getFileHash = (filePath: string) => {
     const checksum = md5File.sync(filePath)
-    const hash = keccak256(checksum)
-    return hash
+    return getHash(checksum)
 }
 
 export const getFileMetadata = async (
     wallet: Wallet, 
     filePath: string
 ): Promise<BaseStreamrFileMetadata> => {
-    const hash = getHash(filePath)
+    const hash = getFileHash(filePath)
     const signature = await wallet.signMessage(hash)
     const size = statSync(filePath).size
     const timestamp = Date.now()

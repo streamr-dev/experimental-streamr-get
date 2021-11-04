@@ -3,6 +3,13 @@ import {v4 as uuidv4} from "uuid"
 import { EventEmitter } from 'events'
 import * as md5File from 'md5-file'
 import { keccak256 } from "js-sha3"
+import { MemoryStorage } from "./storage/MemoryStorage"
+import { Wallet } from "ethers"
+import { 
+    getHash,
+    BaseStreamrFileMetadata, 
+    LocalStreamrFileMetadata 
+} from "./storage/Storage"
 
 export type MessageType = 'request' | 'reply' | 'fulfilled'
 
@@ -12,20 +19,26 @@ export type StorageMessage = {
     data?: any
 }
 
-export class StreamrRequest extends EventEmitter{
+export class StreamrGet extends EventEmitter{
 
     client: StreamrClient
+    wallet: Wallet
     stream?: Stream
     pendingRequests: { [key: string]: Function /* promise.resolve */ } = {}
 
-    dataStorage: { [url: string]: any } = {}
+    dataStorage: MemoryStorage = new MemoryStorage()
 
     constructor(
-        client: StreamrClient,
+        privateKey: string,
         streamId: string
     ){
         super()
-        this.client = client 
+        this.client = new StreamrClient({
+            auth: {
+                privateKey: privateKey,
+            },
+        }) 
+        this.wallet = new Wallet(privateKey)
         this.setStream(streamId)
     }
 
@@ -44,25 +57,26 @@ export class StreamrRequest extends EventEmitter{
 
             if (message.type === 'reply' && this.pendingRequests[message.hash]){
                 // the requester replied to our request, store the data
-                this.pendingRequests[message.hash](message)
+                this.pendingRequests[message.hash](message.data)
             }
         })
         this.emit('ready')
     }
 
-    onRequest(message: StorageMessage): boolean{
-        if (this.dataStorage[message.hash]){
+    async onRequest(message: StorageMessage): Promise<boolean>{
+        const file = await this.dataStorage.get(message.hash)
+        if (file){
             this.stream?.publish({ 
                 hash: message.hash,
                 type: 'reply',
-                data: this.dataStorage[message.hash] 
+                data: file
             })
             return true
         }
         return false
     }
 
-    req(hash: string): Promise<any> {
+    get(hash: string): Promise<LocalStreamrFileMetadata> {
         return new Promise((resolve, reject) => {
             try {
                 this.pendingRequests[hash] = resolve
@@ -80,5 +94,20 @@ export class StreamrRequest extends EventEmitter{
                 reject(e)
             }
         })
+    }
+    
+    public async set(data: any): Promise<LocalStreamrFileMetadata>{
+        const jsonData = JSON.stringify(data)
+        const hash = getHash(jsonData)
+        const signature = await this.wallet.signMessage(hash)
+        const metadata = {
+            hash,
+            signature,
+            timestamp: Date.now(),
+            size: jsonData.length,
+        } as BaseStreamrFileMetadata
+        
+        const extended = await this.dataStorage.set(metadata, jsonData)
+        return extended
     }
 }
